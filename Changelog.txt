@@ -3,8 +3,9 @@ fancyss Changelog
 3.6.0（20260420）
    - note	本次更新主要聚焦发布链路对齐和仓库协作体验优化：统一插件版本到 `3.6.0`，并将在线更新与更新日志入口切换到当前 Git 仓库，避免继续指向旧上游地址。
    - update	插件版本号已同步提升到 `3.6.0`：`fancyss/ss/version` 与 `packages/version.json.js` 现保持一致，前端显示版本和在线版本检查将按新版本生效。
-   - update	“检查并更新”链路已切换到当前仓库：`fancyss/scripts/ss_update.sh` 的 `main_url` 改为 `https://raw.githubusercontent.com/hlbt/fancyss/main/packages`，更新包与在线版本号均从当前仓库发布目录获取。
-   - update	页面在线版本检测地址已同步切到当前仓库：`Module_shadowsocks.asp` 中 `version_show()` 读取的 `version.json.js` 改为 `https://raw.githubusercontent.com/hlbt/fancyss/main/packages/version.json.js`。
+   - update	“检查并更新”链路已切换到当前仓库：`fancyss/scripts/ss_update.sh` 的 `main_url` 改为 `https://raw.githubusercontent.com/hlbt/fancyss/refs/heads/main/packages`，更新包与在线版本号均从当前仓库发布目录获取。
+   - update	页面在线版本检测地址已同步切到当前仓库：`Module_shadowsocks.asp` 中 `version_show()` 读取的 `version.json.js` 改为 `https://raw.githubusercontent.com/hlbt/fancyss/refs/heads/main/packages/version.json.js`。
+   - fix	规避 `raw.githubusercontent.com/.../main/...` 在部分节点上的缓存滞后问题：更新相关 raw 地址统一改用 `refs/heads/main`，避免“检查并更新”短时间内仍读取到旧版版本信息。
    - update	“更新日志”按钮链接改为当前仓库 `main` 分支：`https://github.com/hlbt/fancyss/blob/main/Changelog.txt`。
    - update	新增 `.gitignore` 忽略项 `.DS_Store`，避免 macOS Finder 元文件进入 Git 变更列表，减少无关噪音提交。
 

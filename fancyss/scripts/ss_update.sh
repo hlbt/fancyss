@@ -5,7 +5,7 @@
 source /koolshare/scripts/ss_base.sh
 mkdir -p /tmp/upload
 alias echo_date='echo 【$(TZ=UTC-8 date -R +%Y%m%d\ %X)】:'
-main_url="https://raw.githubusercontent.com/hlbt/fancyss/main/packages"
+main_url="https://raw.githubusercontent.com/hlbt/fancyss/refs/heads/main/packages"
 
 # --------------------------------------
 # 6.x.4708			2.6.36.4		arm
