@@ -1,5 +1,13 @@
 fancyss Changelog
 
+3.6.0（20260420）
+   - note	本次更新主要聚焦发布链路对齐和仓库协作体验优化：统一插件版本到 `3.6.0`，并将在线更新与更新日志入口切换到当前 Git 仓库，避免继续指向旧上游地址。
+   - update	插件版本号已同步提升到 `3.6.0`：`fancyss/ss/version` 与 `packages/version.json.js` 现保持一致，前端显示版本和在线版本检查将按新版本生效。
+   - update	“检查并更新”链路已切换到当前仓库：`fancyss/scripts/ss_update.sh` 的 `main_url` 改为 `https://raw.githubusercontent.com/hlbt/fancyss/main/packages`，更新包与在线版本号均从当前仓库发布目录获取。
+   - update	页面在线版本检测地址已同步切到当前仓库：`Module_shadowsocks.asp` 中 `version_show()` 读取的 `version.json.js` 改为 `https://raw.githubusercontent.com/hlbt/fancyss/main/packages/version.json.js`。
+   - update	“更新日志”按钮链接改为当前仓库 `main` 分支：`https://github.com/hlbt/fancyss/blob/main/Changelog.txt`。
+   - update	新增 `.gitignore` 忽略项 `.DS_Store`，避免 macOS Finder 元文件进入 Git 变更列表，减少无关噪音提交。
+
 3.5.15（20260414）
    - note	本次更新继续围绕安装升级和运行状态链路做收口，重点解决三个问题：一是 `3.5.13 -> 3.5.14` 升级时 schema 2 节点 secret 纠偏仍会重复全量扫描，导致安装阶段长时间无日志；二是安装完成后和启动阶段重复触发 `node-tool` webtest 缓存预热，造成启动日志里同一组预热信息出现两次；三是多个内部脚本仍沿用带“年月日”字样的旧日志时间格式。
    - update	安装脚本中的 schema 2 secret 纠偏条件进一步收紧：现在只会对真正需要修正的更老版本执行，不再对已经过 `3.5.13` 及之后版本的数据重复全量扫描；同时为仍需执行的旧数据纠偏补充了阶段开始、进度和完成日志，避免用户在安装阶段误判为卡死。

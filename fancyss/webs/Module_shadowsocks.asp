@@ -9224,7 +9224,7 @@ function version_show() {
 	if(!db_ss["ss_basic_version_local"]) db_ss["ss_basic_version_local"] = "0.0.0"
 	$("#ss_version_show").html("<a class='hintstyle' href='javascript:void(0);'><i>当前版本：" + db_ss['ss_basic_version_local'] + "</i></a>");
 	$.ajax({
-		url: 'https://raw.githubusercontent.com/hq450/fancyss/3.0/packages/version.json.js',
+		url: 'https://raw.githubusercontent.com/hlbt/fancyss/main/packages/version.json.js',
 		type: 'GET',
 		dataType: 'json',
 		success: function(res) {
@@ -11859,7 +11859,7 @@ function toggleKeyMask(o, show){
 																<a><i>当前版本：</i></a>
 															</div>
 															<div style="display:table-cell;float: left;margin-left:270px;position: absolute;padding: 5.5px 0px;">
-																<a type="button" class="ss_btn" target="_blank" href="https://github.com/hq450/fancyss/blob/3.0/Changelog.txt">更新日志</a>
+																<a type="button" class="ss_btn" target="_blank" href="https://github.com/hlbt/fancyss/blob/main/Changelog.txt">更新日志</a>
 															</div>
 															<div style="display:table-cell;float: left;margin-left:350px;position: absolute;padding: 5.5px 0px;">
 																<a type="button" class="ss_btn" href="javascript:void(0);" onclick="pop_help()">插件帮助</a>
