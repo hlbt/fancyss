@@ -6,6 +6,9 @@ source /koolshare/scripts/ss_base.sh
 mkdir -p /tmp/upload
 alias echo_date='echo 【$(TZ=UTC-8 date -R +%Y%m%d\ %X)】:'
 main_url="https://raw.githubusercontent.com/hlbt/fancyss/refs/heads/main/packages"
+backup_url_1="https://raw.githubusercontent.com/hlbt/fancyss/main/packages"
+backup_url_2="https://fastly.jsdelivr.net/gh/hlbt/fancyss@main/packages"
+backup_url_3="https://cdn.jsdelivr.net/gh/hlbt/fancyss@main/packages"
 
 # --------------------------------------
 # 6.x.4708			2.6.36.4		arm
@@ -21,6 +24,44 @@ main_url="https://raw.githubusercontent.com/hlbt/fancyss/refs/heads/main/package
 
 run(){
 	env -i PATH=${PATH} "$@"
+}
+
+curl_update_fetch(){
+	local remote_file="$1"
+	local output_file="$2"
+	local base_url=""
+	for base_url in "${main_url}" "${backup_url_1}" "${backup_url_2}" "${backup_url_3}"; do
+		echo_date "尝试地址：${base_url}/${remote_file}"
+		if [ -n "${SOCKS5_OPEN}" ];then
+			run /tmp/curl-update -4skf -L --connect-timeout 5 --max-time 120 --retry 3 --retry-delay 1 -x socks5h://127.0.0.1:23456 "${base_url}/${remote_file}" > "${output_file}"
+		else
+			run /tmp/curl-update -4skf -L --connect-timeout 5 --max-time 120 --retry 3 --retry-delay 1 "${base_url}/${remote_file}" > "${output_file}"
+		fi
+		if [ "$?" = "0" ];then
+			main_url="${base_url}"
+			return 0
+		fi
+	done
+	return 1
+}
+
+curl_update_download(){
+	local remote_file="$1"
+	local output_file="$2"
+	local base_url=""
+	for base_url in "${main_url}" "${backup_url_1}" "${backup_url_2}" "${backup_url_3}"; do
+		echo_date "尝试下载：${base_url}/${remote_file}"
+		if [ -n "${SOCKS5_OPEN}" ];then
+			run /tmp/curl-update -4kf -L --connect-timeout 5 --max-time 120 --retry 3 --retry-delay 1 -x socks5h://127.0.0.1:23456 "${base_url}/${remote_file}" --output "${output_file}"
+		else
+			run /tmp/curl-update -4kf -L --connect-timeout 5 --max-time 120 --retry 3 --retry-delay 1 "${base_url}/${remote_file}" --output "${output_file}"
+		fi
+		if [ "$?" = "0" ];then
+			main_url="${base_url}"
+			return 0
+		fi
+	done
+	return 1
 }
 
 # arm hnd hnd_v8 qca mtk
@@ -41,7 +82,7 @@ install_fancyss(){
 
 update_ss(){
 	echo_date "更新过程中请不要刷新本页面或者关闭路由等，不然可能导致问题！"
-	echo_date "检查科学上网插件更新，使用主服务器：github"
+	echo_date "检查科学上网插件更新，主服务器：github（失败自动切换镜像）"
 	echo_date "检测主服务器在线版本号..."
 	echo_date "地址：${main_url}/${VERSION}"
 	
@@ -49,18 +90,14 @@ update_ss(){
 		ln -sf /koolshare/bin/curl-fancyss /tmp/curl-update
 	fi
 
-	SOCKS5_OPEN=$(netstat -nlp 2>/dev/null|grep -w "23456"|grep -Eo "v2ray|xray|naive|tuic|anytls-client")
-	if [ -n "${SOCKS5_OPEN}" ];then
-		run /tmp/curl-update -4sk -L --connect-timeout 5 --max-time 120 --retry 3 --retry-delay 1 -x socks5h://127.0.0.1:23456 ${main_url}/${VERSION} >/tmp/version.json.js
-	else
-		run /tmp/curl-update -4sk -L --connect-timeout 5 --max-time 120 --retry 3 --retry-delay 1 ${main_url}/${VERSION} >/tmp/version.json.js
-	fi	
-	
+	SOCKS5_OPEN=$(netstat -nl 2>/dev/null | grep -w "23456")
+	curl_update_fetch "${VERSION}" "/tmp/version.json.js"
 	if [ "$?" != "0" ];then
-		echo_date "没有检测到主服务器在线版本号，访问github服务器可能有点问题！"
+		echo_date "没有检测到在线版本号，github及镜像访问可能有点问题！"
 		echo "XU6J03M6"
 		exit 1
 	fi
+	echo_date "在线版本源：${main_url}/${VERSION}"
 	run jq --tab . /tmp/version.json.js >/dev/null 2>&1
 	if [ "$?" != "0" ];then
 		echo_date "在线版本号获取错误！请检测你的网络！"
@@ -78,15 +115,12 @@ update_ss(){
 		fancyss_md5_online=$(cat /tmp/version.json.js | run jq -r .$MD5NAME)
 		echo_date "开启下载进程，从主服务器上下载更新包..."
 		echo_date "下载链接：${main_url}/${PACKAGE}.tar.gz"
-		if [ -z "${SOCKS5_OPEN}" ];then
-			run /tmp/curl-update -4k -L --connect-timeout 5 --max-time 120 --retry 3 --retry-delay 1 -x socks5h://127.0.0.1:23456 ${main_url}/${PACKAGE}.tar.gz --output /tmp/${PACKAGE}.tar.gz
-		else
-			run /tmp/curl-update -4k -L --connect-timeout 5 --max-time 120 --retry 3 --retry-delay 1 ${main_url}/${PACKAGE}.tar.gz --output /tmp/${PACKAGE}.tar.gz
-		fi
+		curl_update_download "${PACKAGE}.tar.gz" "/tmp/${PACKAGE}.tar.gz"
 		
 		if [ "$?" != "0" ];then
 			rm -rf /tmp/${PACKAGE}.tar.gz
-			wget -t 3 --no-check-certificate --timeout=5 ${main_url}/${PACKAGE}.tar.gz
+			echo_date "curl下载失败，尝试使用wget从当前版本源下载..."
+			wget -t 3 --no-check-certificate --timeout=5 "${main_url}/${PACKAGE}.tar.gz"
 		fi
 		
 		if [ "$?" != "0" ];then
