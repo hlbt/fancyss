@@ -74,6 +74,7 @@ SUB_AIRPORT_IDENTITY=""
 SUB_SOURCE_SCOPE=""
 SUB_PAYLOAD_KIND=""
 SUB_DOWNLOAD_FILENAME=""
+SUB_FORCE_UA=""
 NODE_TOOL_CONF_FILE="/koolshare/ss/rules/node-tool.conf"
 SCHEMA2_REFERENCE_NOTICE_FILE="${DIR}/reference_notice.jsonl"
 SUB_TOOL_DIFF_FILE_CURRENT=""
@@ -1760,6 +1761,15 @@ sub_log_fancyss_parse_nodes(){
 		prefix=$(sub_fancyss_type_prefix "${type_id}" "${xray_prot}")
 		echo_date "${prefix}${name}"
 	done
+}
+
+sub_has_deprecated_client_notice_nodes(){
+	local file="$1"
+	local matched="0"
+	[ -f "${file}" ] || return 1
+	matched=$(run jq -r '.name // empty' "${file}" 2>/dev/null | grep -Ec '失去支持|请尽快更新|官网公告|推荐的代理')
+	[ -n "${matched}" ] || matched="0"
+	[ "${matched}" -ge 2 ]
 }
 
 sub_prepare_decoded_file(){
@@ -6544,7 +6554,8 @@ get_ua(){
 	# echo -n "${FW_TYPE}|${FW_MOD}|${MODEL}|${fw_version}|${pkg_name}|${pkg_arch}|${pkg_type}|${pkg_vers}|curl|v2rayN|Shadowrocket"
 	# echo -n "${FW_TYPE}|${FW_MOD}|${MODEL}|${fw_version}|${pkg_name}|${pkg_arch}|${pkg_type}|${pkg_vers}|curl|v2rayN"
 
-	_UA=$(dbus get ss_basic_online_ua)
+	_UA="${SUB_FORCE_UA}"
+	[ -n "${_UA}" ] || _UA=$(dbus get ss_basic_online_ua)
 	case ${_UA} in
 	0)
 		echo -n "${FW_TYPE}|${FW_MOD}|${MODEL}|${fw_version}|${pkg_name}|${pkg_arch}|${pkg_type}|${pkg_vers}|curl|v2rayN"
@@ -6560,6 +6571,9 @@ get_ua(){
 		;;
 	4)
 		echo -n "shadowrocket"
+		;;
+	5)
+		echo -n "clash.meta"
 		;;
 	esac
 	#&flag=shadowrocket
@@ -6892,6 +6906,12 @@ get_online_rule_now(){
 		done < ${DIR}/sub_file_decode_${SUB_LINK_HASH:0:4}.txt
 	fi
 	echo_date "-------------------------------------------------------------------"
+	if [ -z "${SUB_FORCE_UA}" ] && [ "$(dbus get ss_basic_online_ua)" != "5" ] && sub_has_deprecated_client_notice_nodes "${DIR}/online_${sub_count}_${SUB_SOURCE_TAG}.txt";then
+		echo_date "⚠️检测到“客户端已失去支持”提示节点，疑似订阅服务端按UA返回了兼容占位节点。"
+		echo_date "🔁临时切换UA为ClashMeta重试当前订阅..."
+		rm -f "${DIR}/online_${sub_count}_${SUB_SOURCE_TAG}.txt"
+		return 23
+	fi
 	local ONLINE_GROUP=$(sub_resolve_online_group_label "${DIR}/online_${sub_count}_${SUB_SOURCE_TAG}.txt" "${DOMAIN_NAME}" "${SUB_PAYLOAD_KIND}" "${SUB_DOWNLOAD_FILENAME}")
 	local RAW_ONLINE_GROUP=$(get_group_label_from_file "${DIR}/online_${sub_count}_${SUB_SOURCE_TAG}.txt" "${DOMAIN_NAME}")
 	if [ -n "${ONLINE_GROUP}" ] && [ "${ONLINE_GROUP}" != "${RAW_ONLINE_GROUP}" ];then
@@ -7051,7 +7071,15 @@ start_node_subscribe(){
 		echo_date "🌎${url}"
 		exclude=0
 		get_online_rule_now "${url}"
-		case $? in
+		ret=$?
+		if [ "${ret}" = "23" ];then
+			SUB_FORCE_UA="5"
+			echo_date "🪧重试订阅（临时UA：ClashMeta）..."
+			get_online_rule_now "${url}"
+			ret=$?
+			SUB_FORCE_UA=""
+		fi
+		case ${ret} in
 		0)
 			continue
 			;;
