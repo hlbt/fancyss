@@ -331,6 +331,8 @@ var batch_ws_completed = false;
 var batch_ws_last_message_at = 0;
 var batch_ws_watchdog_timer = null;
 var singleLatencySocket = null;
+var singleLatencyWatchdogTimer = null;
+var singleLatencySeenPayload = false;
 var fss_nodes_raw = {};
 var node_auto_migrate_attempted = false;
 var node_auto_migrate_layer = null;
@@ -4048,6 +4050,9 @@ function close_auto_migrate_layer() {
 		node_auto_migrate_layer = null;
 	}
 }
+var AUTO_MIGRATE_POLL_INTERVAL_MS = 500;
+var AUTO_MIGRATE_MAX_RETRY = 240;
+var AUTO_MIGRATE_MAX_RETRY_WHILE_RUNNING = 1200;
 function poll_auto_migrate_status(retry, cb) {
 	refresh_fss_bundle(function() {
 		if (get_node_storage_schema() == 2) {
@@ -4056,7 +4061,9 @@ function poll_auto_migrate_status(retry, cb) {
 			}
 			return;
 		}
-		if (retry >= 40) {
+		var migrating = String(db_fss["fss_data_migrating"] || "") == "1";
+		var maxRetry = migrating ? AUTO_MIGRATE_MAX_RETRY_WHILE_RUNNING : AUTO_MIGRATE_MAX_RETRY;
+		if (retry >= maxRetry) {
 			if (typeof cb === "function") {
 				cb(false);
 			}
@@ -4064,7 +4071,7 @@ function poll_auto_migrate_status(retry, cb) {
 		}
 		setTimeout(function() {
 			poll_auto_migrate_status(retry + 1, cb);
-		}, 500);
+		}, AUTO_MIGRATE_POLL_INTERVAL_MS);
 	});
 }
 function auto_migrate_node_storage(cb) {
@@ -4086,6 +4093,7 @@ function auto_migrate_node_storage(cb) {
 			poll_auto_migrate_status(0, function(done) {
 				close_auto_migrate_layer();
 				if (!done) {
+					node_auto_migrate_attempted = false;
 					layer.msg("节点数据自动升级失败，暂时继续使用旧版结构");
 				}
 				if (typeof cb === "function") {
@@ -4095,6 +4103,7 @@ function auto_migrate_node_storage(cb) {
 		},
 		error: function() {
 			close_auto_migrate_layer();
+			node_auto_migrate_attempted = false;
 			layer.msg("节点数据自动升级失败，暂时继续使用旧版结构");
 			if (typeof cb === "function") {
 				cb(false);
@@ -8068,6 +8077,11 @@ function close_latency_ws(resetState) {
 	}
 }
 function close_single_latency_ws() {
+	if (singleLatencyWatchdogTimer) {
+		clearTimeout(singleLatencyWatchdogTimer);
+		singleLatencyWatchdogTimer = null;
+	}
+	singleLatencySeenPayload = false;
 	if (singleLatencySocket) {
 		try {
 			singleLatencySocket.close();
@@ -8331,10 +8345,18 @@ function start_single_latency_ws(node) {
 		return false;
 	}
 	close_single_latency_ws();
+	singleLatencySeenPayload = false;
 	singleLatencySocket = new WebSocket("ws://" + hostname + ":803/");
 	singleLatencySocket.onopen = function() {
 		try {
 			singleLatencySocket.send("follow_webtest");
+			// 兜底：如果 websocket 没有及时返回该节点结果，则自动退回文本轮询。
+			singleLatencyWatchdogTimer = setTimeout(function() {
+				singleLatencyWatchdogTimer = null;
+				if (!singleLatencySeenPayload && single_test_running && String(single_test_node) == String(node)) {
+					get_latency_data_single(node, 0);
+				}
+			}, 1800);
 		} catch (ex) {
 			get_latency_data_single(node, 0);
 		}
@@ -8351,6 +8373,7 @@ function start_single_latency_ws(node) {
 		for (var i = 0; i < array.length; i++) {
 			var item = array[i];
 			if (item[0] != String(node)) continue;
+			singleLatencySeenPayload = true;
 			write_webtest([[String(node), item[1]]]);
 			if(!is_latency_transient_state(item[1])){
 				single_test_wait[node] = false;
