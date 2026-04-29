@@ -6744,21 +6744,25 @@ get_online_rule_now(){
 	SUB_AIRPORT_IDENTITY=$(sub_build_airport_identity "${DOMAIN_MAPPED_GROUP}" "${SUB_SOURCE_TAG}")
 	SUB_SOURCE_SCOPE=$(sub_build_source_scope "${SUB_AIRPORT_IDENTITY}" "${SUB_SOURCE_URL_HASH}")
 	if [ -f "/$DIR/sublink_md5.txt" ];then
-		local IS_ADD=$(cat /$DIR/sublink_md5.txt | grep -Eo ${SUB_LINK_HASH})
+		local IS_ADD=$(grep -Fx "${SUB_LINK_HASH}" "/$DIR/sublink_md5.txt")
 		if [ -n "${IS_ADD}" ];then
-			echo_date "⚠️检测到重复的订阅链接！不订阅该链接！请检查你的订阅地址栏填写情况！"
-			return 1
+			if [ -n "${SUB_FORCE_UA}" ];then
+				echo_date "ℹ️检测到同一链接UA重试，跳过去重检查继续订阅。"
+			else
+				echo_date "⚠️检测到重复的订阅链接！不订阅该链接！请检查你的订阅地址栏填写情况！"
+				return 1
+			fi
 		fi
 	fi
 	if [ -f "/$DIR/subsource_md5.txt" ];then
 		local IS_SAME_SOURCE=$(grep -Fx "${SUB_SOURCE_TAG}" "/$DIR/subsource_md5.txt")
-		if [ -n "${IS_SAME_SOURCE}" ];then
+		if [ -n "${IS_SAME_SOURCE}" ] && [ -z "${SUB_FORCE_UA}" ];then
 			echo_date "⚠️检测到相同域名的多个订阅链接，本次仅保留一个来源：${DOMAIN_NAME}"
 			return 1
 		fi
 	fi
-	echo ${SUB_LINK_HASH} >>/$DIR/sublink_md5.txt
-	echo ${SUB_SOURCE_TAG} >>/$DIR/subsource_md5.txt
+	grep -Fxq "${SUB_LINK_HASH}" "/$DIR/sublink_md5.txt" 2>/dev/null || echo "${SUB_LINK_HASH}" >>"/$DIR/sublink_md5.txt"
+	grep -Fxq "${SUB_SOURCE_TAG}" "/$DIR/subsource_md5.txt" 2>/dev/null || echo "${SUB_SOURCE_TAG}" >>"/$DIR/subsource_md5.txt"
 	UNSUPPORTED_PROTO_LOG_FILE="${DIR}/unsupported_proto_${SUB_SOURCE_TAG}.txt"
 	rm -f "${UNSUPPORTED_PROTO_LOG_FILE}" >/dev/null 2>&1
 
