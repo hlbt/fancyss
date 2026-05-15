@@ -1,5 +1,12 @@
 fancyss Changelog
 
+3.6.5（20260515）
+   - note	本次更新继续围绕“外网访问速度”做第二轮优化，目标是把实际网页访问体感进一步拉近 Clash Verge。
+   - fix	smartdns 智能模式进一步提速：在 `response-mode fastest-response` 基础上，`speed-check-mode` 调整为 `none`，减少额外测速等待，优先快速返回解析结果。
+   - fix	UDP能力可用时的默认链路优化：默认开启访问控制的 `UDP代理`，并默认关闭 `屏蔽QUIC`，让浏览器可优先使用 HTTP/3；对 Naïve/AnyTLS 仍维持不支持UDP时的安全回退策略。
+   - update	性能默认项增强：在非 2.6 内核机型上，默认开启 `ssr多核心` 与 `TCP Fast Open`，提升并发与连接建立效率。
+   - update	发布版本升级至 `3.6.5`，并重新生成各平台安装包及 `packages/version.json.js`，可通过“检查并更新”直接升级。
+
 3.6.4（20260515）
    - note	本次更新聚焦“体感网速”优化，重点降低 smartdns 默认选路的保守程度，让访问体验更接近 Clash Verge 一类客户端的快速响应。
    - fix	将 smartdns 智能模式的响应策略从 `first-ping` 调整为 `fastest-response`，减少“先测再答”带来的等待时间，提升首页和常用站点的首包/解析体感。
