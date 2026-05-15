@@ -651,25 +651,11 @@ prepare_system() {
 	refresh_runtime_context
 	refresh_schema2_secret_fields
 	normalize_ss2022_password
-	# 外网体验优化：在支持UDP代理的节点类型上，默认开启UDP代理并放开QUIC，
-	# 让浏览器可直接使用HTTP/3；Naïve/AnyTLS仍按不支持UDP处理。
-	if acl_proxy_supports_udp; then
-		set_default "ss_basic_block_quic" "0"
-		set_default "ss_acl_default_udp" "1"
-		set_default "ss_acl_default_quic" "0"
-	else
-		set_default "ss_basic_block_quic" "1"
-		set_default "ss_acl_default_udp" "0"
-		set_default "ss_acl_default_quic" "1"
-	fi
-	# 性能优化默认项：新版本默认开启多核和TFO（旧内核2.6除外）
-	if [ "${LINUX_VER}" != "26" ]; then
-		set_default "ss_basic_mcore" "1"
-		set_default "ss_basic_tfo" "1"
-	else
-		set_default "ss_basic_mcore" "0"
-		set_default "ss_basic_tfo" "0"
-	fi
+	# 稳定优先：默认屏蔽 QUIC 并关闭默认 UDP 代理，避免 UDP/TProxy
+	# 或节点 UDP 不稳定时浏览器优先走 HTTP/3 导致外网无法访问。
+	set_default "ss_basic_block_quic" "1"
+	set_default "ss_acl_default_udp" "0"
+	set_default "ss_acl_default_quic" "1"
 	set_default "ss_basic_proxy_ipv6" "0"
 	normalize_server_resolv_mode
 	

@@ -132,6 +132,13 @@ version_lt() {
 	[ "$(version_to_num "${left}")" -lt "$(version_to_num "${right}")" ]
 }
 
+version_eq() {
+	local left="$1"
+	local right="$2"
+	[ -n "${left}" ] || return 1
+	[ "$(version_to_num "${left}")" -eq "$(version_to_num "${right}")" ]
+}
+
 schema2_secret_decode_candidate() {
 	local value="$1"
 	local decoded=""
@@ -1088,9 +1095,11 @@ install_now(){
 	local OLD_VER="$(dbus get ss_basic_version_local)"
 	local FORCE_LEGACY_CACHE_RESET=0
 	local FORCE_SCHEMA2_SECRET_NORMALIZE=0
+	local FORCE_STABLE_PROXY_DEFAULTS=0
 	[ -z "${OLD_VER}" -a -f "/koolshare/ss/version" ] && OLD_VER="$(cat /koolshare/ss/version 2>/dev/null)"
 	[ -n "${OLD_VER}" ] && version_lt "${OLD_VER}" "3.6.0" && FORCE_LEGACY_CACHE_RESET=1
 	[ -n "${OLD_VER}" ] && version_lt "${OLD_VER}" "3.5.13" && FORCE_SCHEMA2_SECRET_NORMALIZE=1
+	[ -n "${OLD_VER}" ] && version_eq "${OLD_VER}" "3.6.5" && FORCE_STABLE_PROXY_DEFAULTS=1
 
 	#local PKG_ARCH_OLD=$(cat /koolshare/webs/Module_shadowsocks.asp 2>/dev/null | grep -Eo "PKG_ARCH=.+" | awk -F"=" '{print $2}' |sed 's/"//g')
 	#local PKG_TYPE_OLD=$(cat /koolshare/webs/Module_shadowsocks.asp 2>/dev/null | grep -Eo "PKG_TYPE=.+" | awk -F"=" '{print $2}' |sed 's/"//g')
@@ -1417,6 +1426,13 @@ install_now(){
 	[ -z "$(dbus get ss_acl_default_mode_format)" ] && dbus set ss_acl_default_mode_format=2
 	[ -z "$(dbus get ss_acl_default_udp)" ] && dbus set ss_acl_default_udp=0
 	[ -z "$(dbus get ss_acl_default_quic)" ] && dbus set ss_acl_default_quic=1
+	if [ "${FORCE_STABLE_PROXY_DEFAULTS}" = "1" ];then
+		echo_date "检测到 3.6.5 默认放开 UDP/QUIC 可能导致部分环境外网不可访问，恢复稳定代理默认值..."
+		dbus set ss_basic_block_quic=1
+		dbus set ss_acl_default_udp=0
+		dbus set ss_acl_default_quic=1
+		dbus set ss_basic_tfo=0
+	fi
 	[ -z "$(dbus get ss_acl_default_ports)" ] && dbus set ss_acl_default_ports="22,80,443,8080,8443"
 	[ -z "$(dbus get ss_basic_interval)" ] && dbus set ss_basic_interval=2
 	[ -z "$(dbus get ss_basic_furl)" ] && dbus set ss_basic_furl="http://www.google.com/generate_204"

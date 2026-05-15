@@ -1,5 +1,11 @@
 fancyss Changelog
 
+3.6.6（20260515）
+   - note	本次更新为 3.6.5 的稳定性修复版本，优先解决“打开代理后无法访问外网”的问题。
+   - fix	恢复稳定代理默认值：默认重新屏蔽 QUIC、关闭默认 UDP 代理，避免部分路由器或节点 UDP/TProxy 不稳定时浏览器优先走 HTTP/3 导致外网打不开。
+   - fix	从 3.6.5 升级时会自动纠正 3.6.5 写入的激进默认项，并关闭默认 TCP Fast Open，让已升级用户也能通过“检查并更新”恢复稳定访问。
+   - update	发布版本升级至 `3.6.6`，并重新生成各平台安装包及 `packages/version.json.js`，可通过“检查并更新”直接升级。
+
 3.6.5（20260515）
    - note	本次更新继续围绕“外网访问速度”做第二轮优化，目标是把实际网页访问体感进一步拉近 Clash Verge。
    - fix	smartdns 智能模式进一步提速：在 `response-mode fastest-response` 基础上，`speed-check-mode` 调整为 `none`，减少额外测速等待，优先快速返回解析结果。
