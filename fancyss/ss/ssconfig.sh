@@ -1905,7 +1905,7 @@ EOF
 	3)
 		cat >> "${outfile}" <<-'EOF'
 speed-check-mode ping,tcp:80,tcp:443
-response-mode fastest-ip
+response-mode fastest-response
 dualstack-ip-selection yes
 dualstack-ip-selection-threshold 10
 EOF
