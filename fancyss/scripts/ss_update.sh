@@ -44,22 +44,43 @@ curl_update_fetch(){
 	return 1
 }
 
-curl_update_download(){
+curl_update_download_verified(){
 	local remote_file="$1"
 	local output_file="$2"
+	local expected_md5="$3"
 	local base_url=""
+	local tmp_file="${output_file}.download"
+	local downloaded_md5=""
+	local downloaded_size=""
+	rm -f "${output_file}" "${tmp_file}"
 	for base_url in "${main_url}" "${backup_url_1}" "${backup_url_2}"; do
 		echo_date "尝试下载：${base_url}/${remote_file}"
+		rm -f "${tmp_file}"
 		if [ -n "${SOCKS5_OPEN}" ];then
-			run /tmp/curl-update -4kf -L --connect-timeout 5 --max-time 120 --retry 3 --retry-delay 1 -x socks5h://127.0.0.1:23456 "${base_url}/${remote_file}" --output "${output_file}"
+			run /tmp/curl-update -4kf -L --connect-timeout 5 --max-time 180 --retry 2 --retry-delay 1 -x socks5h://127.0.0.1:23456 "${base_url}/${remote_file}" --output "${tmp_file}"
 		else
-			run /tmp/curl-update -4kf -L --connect-timeout 5 --max-time 120 --retry 3 --retry-delay 1 "${base_url}/${remote_file}" --output "${output_file}"
+			run /tmp/curl-update -4kf -L --connect-timeout 5 --max-time 180 --retry 2 --retry-delay 1 "${base_url}/${remote_file}" --output "${tmp_file}"
 		fi
-		if [ "$?" = "0" ];then
+		if [ "$?" != "0" ] || [ ! -s "${tmp_file}" ];then
+			echo_date "下载失败或文件为空，切换下一个更新源..."
+			rm -f "${tmp_file}"
+			continue
+		fi
+		downloaded_size=$(ls -lh "${tmp_file}" | awk '{print $5}')
+		downloaded_md5=$(md5sum "${tmp_file}" | sed 's/ /\n/g'| sed -n 1p)
+		echo_date "本次下载大小：${downloaded_size}"
+		echo_date "本次下载md5：${downloaded_md5}"
+		echo_date "在线期望md5：${expected_md5}"
+		if [ "${downloaded_md5}" = "${expected_md5}" ];then
+			mv -f "${tmp_file}" "${output_file}"
 			main_url="${base_url}"
+			echo_date "更新包md5校验一致，使用源：${main_url}"
 			return 0
 		fi
+		echo_date "更新包md5校验不一致，删除坏包并切换下一个更新源..."
+		rm -f "${tmp_file}"
 	done
+	rm -f "${tmp_file}"
 	return 1
 }
 
@@ -114,16 +135,11 @@ update_ss(){
 		fancyss_md5_online=$(cat /tmp/version.json.js | run jq -r .$MD5NAME)
 		echo_date "开启下载进程，从主服务器上下载更新包..."
 		echo_date "下载链接：${main_url}/${PACKAGE}.tar.gz"
-		curl_update_download "${PACKAGE}.tar.gz" "/tmp/${PACKAGE}.tar.gz"
+		curl_update_download_verified "${PACKAGE}.tar.gz" "/tmp/${PACKAGE}.tar.gz" "${fancyss_md5_online}"
 		
 		if [ "$?" != "0" ];then
 			rm -rf /tmp/${PACKAGE}.tar.gz
-			echo_date "curl下载失败，尝试使用wget从当前版本源下载..."
-			wget -t 3 --no-check-certificate --timeout=5 "${main_url}/${PACKAGE}.tar.gz"
-		fi
-		
-		if [ "$?" != "0" ];then
-			echo_date "下载失败！请检查你的网络！"
+			echo_date "所有更新源均下载失败或md5校验不一致，请稍后再试！"
 			echo "XU6J03M6"
 			exit 1
 		fi
