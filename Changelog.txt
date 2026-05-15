@@ -1,5 +1,10 @@
 fancyss Changelog
 
+3.6.7（20260515）
+   - note	本次更新为在线更新链路修复版本，解决部分路由器落到 fastly.jsdelivr 镜像后仍读取旧版 `3.6.4` 的问题。
+   - fix	移除更新脚本中的 `fastly.jsdelivr.net` 备用源，避免该 CDN 缓存滞后时误判线上版本与本地版本相同。
+   - update	保留 GitHub Raw 与 `cdn.jsdelivr.net` 作为更新源，并重新生成安装包及 `packages/version.json.js`，确保“检查并更新”可以升级到最新版本。
+
 3.6.6（20260515）
    - note	本次更新为 3.6.5 的稳定性修复版本，优先解决“打开代理后无法访问外网”的问题。
    - fix	恢复稳定代理默认值：默认重新屏蔽 QUIC、关闭默认 UDP 代理，避免部分路由器或节点 UDP/TProxy 不稳定时浏览器优先走 HTTP/3 导致外网打不开。

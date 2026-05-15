@@ -7,8 +7,7 @@ mkdir -p /tmp/upload
 alias echo_date='echo 【$(TZ=UTC-8 date -R +%Y%m%d\ %X)】:'
 main_url="https://raw.githubusercontent.com/hlbt/fancyss/refs/heads/main/packages"
 backup_url_1="https://raw.githubusercontent.com/hlbt/fancyss/main/packages"
-backup_url_2="https://fastly.jsdelivr.net/gh/hlbt/fancyss@main/packages"
-backup_url_3="https://cdn.jsdelivr.net/gh/hlbt/fancyss@main/packages"
+backup_url_2="https://cdn.jsdelivr.net/gh/hlbt/fancyss@main/packages"
 
 # --------------------------------------
 # 6.x.4708			2.6.36.4		arm
@@ -30,7 +29,7 @@ curl_update_fetch(){
 	local remote_file="$1"
 	local output_file="$2"
 	local base_url=""
-	for base_url in "${main_url}" "${backup_url_1}" "${backup_url_2}" "${backup_url_3}"; do
+	for base_url in "${main_url}" "${backup_url_1}" "${backup_url_2}"; do
 		echo_date "尝试地址：${base_url}/${remote_file}"
 		if [ -n "${SOCKS5_OPEN}" ];then
 			run /tmp/curl-update -4skf -L --connect-timeout 5 --max-time 120 --retry 3 --retry-delay 1 -x socks5h://127.0.0.1:23456 "${base_url}/${remote_file}" > "${output_file}"
@@ -49,7 +48,7 @@ curl_update_download(){
 	local remote_file="$1"
 	local output_file="$2"
 	local base_url=""
-	for base_url in "${main_url}" "${backup_url_1}" "${backup_url_2}" "${backup_url_3}"; do
+	for base_url in "${main_url}" "${backup_url_1}" "${backup_url_2}"; do
 		echo_date "尝试下载：${base_url}/${remote_file}"
 		if [ -n "${SOCKS5_OPEN}" ];then
 			run /tmp/curl-update -4kf -L --connect-timeout 5 --max-time 120 --retry 3 --retry-delay 1 -x socks5h://127.0.0.1:23456 "${base_url}/${remote_file}" --output "${output_file}"
